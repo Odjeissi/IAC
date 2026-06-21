@@ -354,7 +354,7 @@ docs/screenshots/
 
 ### Terraform Destroy Stage
 
-![Terraform Apply Stage](docs/screenshots/tf_destroy.png)
+![Terraform Destroy Stage](docs/screenshots/tf_destroy.png)
 
 ### AWS VPC Resources
 
@@ -370,7 +370,7 @@ docs/screenshots/
 
 ### Launch Template
 
-![Target Group](docs/screenshots/launch_template.png)
+![Launch template](docs/screenshots/launch_template.png)
 
 ### Auto Scaling Group
 
