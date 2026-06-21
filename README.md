@@ -1,93 +1,483 @@
-# IAC
+# AWS Scalable Web Infrastructure with Terraform and GitLab CI/CD
 
+## Project Overview
 
+This project shows how I built and deployed scalable AWS infrastructure using Terraform and GitLab CI/CD.
 
-## Getting started
+The main goal was to practice real-world Infrastructure as Code skills. I used Terraform to create AWS networking, servers, a database, storage, security, DNS, HTTPS, and CI/CD automation.
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+The infrastructure was deployed successfully through a GitLab CI/CD pipeline. I also tested Auto Scaling by using `stress-ng` to increase CPU usage on an EC2 instance. This showed that the environment could add more EC2 instances when demand increased and remove them when demand went back down.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+---
 
-## Add your files
+## Architecture
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+The Application Load Balancer and EC2 instances are deployed in public subnets. The RDS database is deployed in private subnets for better security.
 
+```mermaid
+flowchart LR
+    User[User] --> Route53[Route53 DNS]
+    Route53 --> ALB[Application Load Balancer]
+    ACM[ACM SSL/TLS Certificate] --> ALB
+
+    ALB --> ASG[Auto Scaling Group]
+
+    subgraph AWS[AWS Cloud]
+        subgraph VPC[Custom VPC]
+            subgraph Public[Public Subnets]
+                ALB
+                ASG
+                EC2A[EC2 Instance]
+                EC2B[EC2 Instance]
+            end
+
+            subgraph Private[Private Subnets]
+                RDS[(RDS Database)]
+            end
+        end
+
+        S3[S3 Bucket]
+        IAM[IAM Role / Instance Profile]
+    end
+
+    ASG --> EC2A
+    ASG --> EC2B
+
+    EC2A --> RDS
+    EC2B --> RDS
+
+    EC2A --> S3
+    EC2B --> S3
+
+    IAM --> EC2A
+    IAM --> EC2B
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/dev-group3951822/iac.git
-git branch -M main
-git push -uf origin main
+
+---
+
+## Current Infrastructure Design
+
+This project uses the following setup:
+
+* The Application Load Balancer is placed in public subnets.
+* EC2 instances run in public subnets inside an Auto Scaling Group.
+* The RDS database runs in private subnets.
+* Security groups control traffic between the load balancer, EC2 instances, and RDS.
+* Route53 points the domain name to the Application Load Balancer.
+* ACM provides the SSL/TLS certificate for HTTPS.
+* The Auto Scaling Group adds or removes EC2 instances based on demand.
+* Terraform state is stored remotely in an S3 backend.
+* An S3 bucket is also created as part of the infrastructure.
+
+---
+
+## AWS Services Used
+
+This project creates the following AWS resources:
+
+* VPC
+* Public subnets
+* Private subnets
+* Internet Gateway
+* NAT Gateway
+* Route tables
+* Security groups
+* Application Load Balancer
+* Target Group
+* HTTP listener
+* HTTPS listener
+* ACM SSL/TLS certificate
+* Route53 DNS record
+* Launch Template
+* Auto Scaling Group
+* EC2 instances
+* IAM role
+* IAM instance profile
+* S3 bucket
+* RDS database
+* Remote Terraform state using an S3 backend
+
+---
+
+## Tools and Technologies
+
+* Terraform
+* AWS
+* GitLab CI/CD
+* Linux
+* Bash
+* Apache
+* stress-ng
+
+---
+
+## Project Goals
+
+The main goals of this project were to:
+
+* Build AWS infrastructure using Terraform.
+* Create reusable Terraform modules.
+* Keep the environments separate from reusable modules.
+* Deploy infrastructure automatically with GitLab CI/CD.
+* Store Terraform state remotely.
+* Build a load-balanced web environment.
+* Set up an Auto Scaling Group.
+* Test Auto Scaling using CPU stress testing.
+
+---
+
+## Repository Structure
+
+```text
+.
+├── .gitignore
+├── .gitlab-ci.yml
+├── README.md
+├── docs
+│   └── screenshots
+└── terraform
+    ├── environment
+    │   └── dev
+    │       ├── backend.tf
+    │       ├── main.tf
+    │       ├── outputs.tf
+    │       ├── terraform.tf
+    │       ├── variables.tf
+    │       └── versions.tf
+    ├── modules
+    │   ├── IAM
+    │   ├── acm
+    │   ├── auto_scaling
+    │   ├── key_pair
+    │   ├── launch_template
+    │   ├── lb
+    │   ├── network
+    │   ├── rds
+    │   ├── route53
+    │   └── s3
+    └── scripts
+        └── apache2.sh
 ```
 
-## Integrate with your tools
+---
 
-* [Set up project integrations](https://gitlab.com/dev-group3951822/iac/-/settings/integrations)
+## Terraform Module Overview
 
-## Collaborate with your team
+The infrastructure is built with reusable Terraform modules. Each module is responsible for one part of the setup.
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+### Network Module
 
-## Test and Deploy
+The network module creates the main AWS networking resources.
 
-Use the built-in continuous integration in GitLab.
+Resources created:
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+* VPC
+* Public subnets
+* Private subnets
+* Internet Gateway
+* NAT Gateway
+* Public route table
+* Private route tables
+* Route table associations
 
-***
+### Security Groups Module
 
-# Editing this README
+The security groups module creates separate security groups for each infrastructure resource.
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+Security groups created:
 
-## Suggestions for a good README
+* Load balancer security group
+* EC2 security group
+* RDS security group
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+### Load Balancer Module
 
-## Name
-Choose a self-explaining name for your project.
+The load balancer module creates the public entry point for the web application.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+Resources created:
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+* Application Load Balancer
+* Target Group
+* HTTP listener
+* HTTPS listener
+* HTTP to HTTPS redirect
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+### Launch Template Module
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+The launch template module defines how EC2 instances are created.
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+The configuration includes:
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+* Ubuntu AMI
+* Instance type
+* SSH key pair
+* IAM instance profile
+* Security group
+* User data script
+* Instance metadata settings
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+### Auto Scaling Module
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+The Auto Scaling module creates the EC2 Auto Scaling Group.
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+Resources created:
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+* Auto Scaling Group
+* Target tracking scaling policy
+* Load balancer target group attachment
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+I tested the Auto Scaling Group with `stress-ng` to increase CPU usage and trigger scaling events.
 
-## License
-For open source projects, say how it is licensed.
+### RDS Module
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+The RDS module creates the database layer.
+
+Resources created:
+
+* RDS database instance
+* DB subnet group
+
+The RDS database is placed in private subnets.
+
+### S3 Module
+
+The S3 module creates an S3 bucket used by the infrastructure or application.
+
+### ACM Module
+
+The ACM module creates and validates an SSL/TLS certificate using AWS Certificate Manager.
+
+### Route53 Module
+
+The Route53 module creates a DNS alias record that points to the Application Load Balancer.
+
+### IAM Module
+
+The IAM module creates an IAM role and instance profile for the EC2 instances.
+
+---
+
+## GitLab CI/CD Pipeline
+
+This project uses GitLab CI/CD to automate the Terraform deployment.
+
+The pipeline has these stages:
+
+```text
+validate
+plan
+apply
+destroy
+```
+
+### Pipeline Workflow
+
+1. Code is pushed to the repository.
+2. GitLab CI/CD starts the Terraform pipeline.
+3. Terraform initializes the backend and providers.
+4. Terraform checks that the configuration is valid.
+5. Terraform creates an execution plan.
+6. Terraform applies the changes and creates the infrastructure.
+7. Terraform destroy can be run when the infrastructure is no longer needed.
+
+---
+
+## GitLab CI/CD Variables
+
+Sensitive values are stored in GitLab CI/CD variables. They are not committed to the repository.
+
+Example variables used by the pipeline:
+
+```text
+MY_AWS_ACCESS_KEY_ID
+MY_AWS_SECRET_ACCESS_KEY
+db_username
+db_password
+PUB_KEY
+```
+
+AWS credentials, database passwords, and other secrets should always be stored securely in GitLab CI/CD variables.
+
+---
+
+## Deployment Evidence
+
+The infrastructure was successfully created using the GitLab CI/CD pipeline.
+
+Screenshots were taken to show the deployment process and the AWS resources created by Terraform.
+
+Evidence captured includes:
+
+* Successful GitLab pipeline stages
+* Terraform validate stage
+* Terraform plan stage
+* Terraform apply stage
+* AWS VPC resources
+* Public subnets
+* Private subnets
+* Application Load Balancer
+* Target Group
+* Auto Scaling Group
+* EC2 instances
+* RDS database
+* S3 bucket
+* Route53 DNS record
+* ACM certificate
+* Auto Scaling scale-out behavior
+* Auto Scaling scale-in behavior
+
+Screenshots are stored in:
+
+```text
+docs/screenshots/
+```
+
+---
+
+## Screenshots
+
+### GitLab Pipeline Success
+
+![GitLab Pipeline Success](docs/screenshots/gitlab-pipeline-success.png)
+
+### Terraform Validate Stage
+
+![Terraform Validate Stage](docs/screenshots/terraform-validate-stage.png)
+
+### Terraform Plan Stage
+
+![Terraform Plan Stage](docs/screenshots/terraform-plan-stage.png)
+
+### Terraform Apply Stage
+
+![Terraform Apply Stage](docs/screenshots/terraform-apply-stage.png)
+
+### AWS VPC Resources
+
+![AWS VPC Resources](docs/screenshots/aws-vpc-resources.png)
+
+### Public and Private Subnets
+
+![AWS Subnets](docs/screenshots/aws-subnets.png)
+
+### Application Load Balancer
+
+![Application Load Balancer](docs/screenshots/aws-load-balancer.png)
+
+### Target Group
+
+![Target Group](docs/screenshots/aws-target-group.png)
+
+### Auto Scaling Group
+
+![Auto Scaling Group](docs/screenshots/aws-auto-scaling-group.png)
+
+### EC2 Instances
+
+![EC2 Instances](docs/screenshots/aws-ec2-instances.png)
+
+### RDS Database
+
+![RDS Database](docs/screenshots/aws-rds-database.png)
+
+### S3 Bucket
+
+![S3 Bucket](docs/screenshots/aws-s3-bucket.png)
+
+### Route53 Record
+
+![Route53 Record](docs/screenshots/aws-route53-record.png)
+
+### ACM Certificate
+
+![ACM Certificate](docs/screenshots/aws-acm-certificate.png)
+
+### Auto Scaling Scale-Out Event
+
+![Auto Scaling Scale Out](docs/screenshots/autoscaling-scale-out.png)
+
+### Auto Scaling Scale-In Event
+
+![Auto Scaling Scale In](docs/screenshots/autoscaling-scale-in.png)
+
+---
+
+## Auto Scaling Test
+
+To test Auto Scaling, I used `stress-ng` on an EC2 instance to increase CPU usage.
+
+Example command:
+
+```bash
+stress-ng --cpu 2 --cpu-load 90 --timeout 10m --metrics-brief
+```
+
+The CPU usage increased, which caused the Auto Scaling Group to launch more EC2 instances.
+
+After the CPU usage dropped, the Auto Scaling Group reduced the number of running EC2 instances based on the scaling policy.
+
+This test showed that the infrastructure can respond automatically when demand changes.
+
+---
+
+## Remote Terraform State
+
+This project uses a remote Terraform backend.
+
+Instead of storing Terraform state locally, the state file is stored in an S3 bucket.
+
+Using remote state helps with:
+
+* Better state management
+* Team collaboration
+* Keeping state available after local files are removed
+* Safer infrastructure management
+
+---
+
+## Security Considerations
+
+This project includes several security-focused choices:
+
+* Infrastructure is managed with Terraform.
+* Terraform state is stored remotely.
+* Security groups are separated by resource type.
+* RDS is deployed in private subnets.
+* HTTPS is enabled with AWS Certificate Manager.
+* IAM roles are used for EC2 permissions.
+* Sensitive values are passed through GitLab CI/CD variables.
+* Database credentials are not committed to the repository.
+
+---
+
+## Skills Demonstrated
+
+This project shows hands-on experience with:
+
+* Infrastructure as Code
+* Terraform module design
+* AWS networking
+* VPC architecture
+* Public and private subnet design
+* Route tables
+* NAT Gateway setup
+* Application Load Balancing
+* Auto Scaling
+* EC2 provisioning
+* RDS provisioning
+* S3 setup
+* IAM roles and instance profiles
+* Route53 DNS setup
+* ACM certificate setup
+* GitLab CI/CD
+* Remote Terraform state
+* Linux administration
+* Bash scripting
+* Cloud infrastructure troubleshooting
+* Scalability testing
+
+---
+
+## Author
+
+Created by Oj Mendes as a cloud infrastructure and DevOps portfolio project.
