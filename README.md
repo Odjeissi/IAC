@@ -338,59 +338,63 @@ docs/screenshots/
 
 ### GitLab Pipeline Success
 
-![GitLab Pipeline Success](docs/screenshots/gitlab-pipeline-success.png)
+![GitLab Pipeline Success](docs/screenshots/branch_pipeline.png)
 
 ### Terraform Validate Stage
 
-![Terraform Validate Stage](docs/screenshots/terraform-validate-stage.png)
+![Terraform Validate Stage](docs/screenshots/tf_validate.png)
 
 ### Terraform Plan Stage
 
-![Terraform Plan Stage](docs/screenshots/terraform-plan-stage.png)
+![Terraform Plan Stage](docs/screenshots/tf_plan.png)
 
 ### Terraform Apply Stage
 
-![Terraform Apply Stage](docs/screenshots/terraform-apply-stage.png)
+![Terraform Apply Stage](docs/screenshots/tf_apply.png)
+
+### Terraform Destroy Stage
+
+![Terraform Apply Stage](docs/screenshots/tf_destroy.png)
 
 ### AWS VPC Resources
 
-![AWS VPC Resources](docs/screenshots/aws-vpc-resources.png)
+![AWS VPC Resources](docs/screenshots/vpc.png)
 
 ### Public and Private Subnets
 
-![AWS Subnets](docs/screenshots/aws-subnets.png)
+![AWS Subnets](docs/screenshots/subnets.png)
 
 ### Application Load Balancer
 
-![Application Load Balancer](docs/screenshots/aws-load-balancer.png)
+![Application Load Balancer](docs/screenshots/lb.png)
 
-### Target Group
+### Launch Template
 
-![Target Group](docs/screenshots/aws-target-group.png)
+![Target Group](docs/screenshots/launch_template.png)
 
 ### Auto Scaling Group
 
-![Auto Scaling Group](docs/screenshots/aws-auto-scaling-group.png)
+![Auto Scaling Group](docs/screenshots/autoscaling.png)
 
 ### EC2 Instances
 
-![EC2 Instances](docs/screenshots/aws-ec2-instances.png)
+![EC2 Instances](docs/screenshots/ec2.png)
 
 ### RDS Database
 
-![RDS Database](docs/screenshots/aws-rds-database.png)
+![RDS Database](docs/screenshots/db.png)
 
 ### S3 Bucket
 
-![S3 Bucket](docs/screenshots/aws-s3-bucket.png)
+![S3 Bucket](docs/screenshots/s3.png)
 
 ### Route53 Record
 
-![Route53 Record](docs/screenshots/aws-route53-record.png)
+![Route53 Record](docs/screenshots/route53.png)
 
 ### ACM Certificate
 
-![ACM Certificate](docs/screenshots/aws-acm-certificate.png)
+![ACM Certificate](docs/screenshots/acm.png)
 
 ### Auto Scaling Scale-Out Event
 
@@ -411,6 +415,8 @@ Example command:
 ```bash
 stress-ng --cpu 2 --cpu-load 90 --timeout 10m --metrics-brief
 ```
+
+![stress-ng](docs/screenshots/stress_cpu_testing.png)
 
 The CPU usage increased, which caused the Auto Scaling Group to launch more EC2 instances.
 
