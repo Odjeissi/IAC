@@ -1,0 +1,61 @@
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+
+default:
+  image:
+    name: hashicorp/terraform:1.15.6
+    entrypoint: [""]
+
+stages:
+  - validate
+  - plan
+  - apply
+  - destroy
+
+# AWS Credentials
+variables:
+  AWS_ACCESS_KEY_ID: "${MY_AWS_ACCESS_KEY_ID}"
+  AWS_SECRET_ACCESS_KEY: "${MY_AWS_SECRET_ACCESS_KEY}"
+
+before_script:
+  - terraform --version
+  - cd terraform/environment/dev
+  - terraform init
+
+Terraform_validate:
+  stage: validate
+  rules:
+    - if: "$CI_COMMIT_REF_NAME != $CI_DEFAULT_BRANCH"
+  script:
+    - terraform fmt
+    - terraform validate
+
+Terraform_plan:
+  stage: plan
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+  script:
+    - terraform plan -var="db_username=${db_username}" -var="db_password=${db_password}" -var="PUB_KEY=${PUB_KEY}"   -out="tfplan"
+  artifacts:
+    paths:
+      - terraform/environment/dev/tfplan
+
+Terraform_apply:
+  dependencies:
+    - Terraform_plan
+  stage: apply
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - terraform apply -input=false "tfplan"
+
+Terraform_destroy:
+  stage: destroy
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - terraform destroy -var="db_username=${db_username}" -var="db_password=${db_password}" -var="PUB_KEY=${PUB_KEY}" -auto-approve
+  when: manual
