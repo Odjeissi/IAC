@@ -420,11 +420,11 @@ stress-ng --cpu 2 --cpu-load 90 --timeout 10m --metrics-brief
 
 The CPU usage increased, which caused the Auto Scaling Group to launch more EC2 instances.
 
-![cpu increased](docs/screenshots/ec2_terminated.png)
+![ec2](docs/screenshots/cpu_utilization.png)
 
 After the CPU usage dropped, the Auto Scaling Group reduced the number of running EC2 instances based on the scaling policy.
 
-![ec2](docs/screenshots/cpu_utilization.png)
+![cpu increased](docs/screenshots/ec2_terminated.png)
 
 This test showed that the infrastructure can respond automatically when demand changes.
 
